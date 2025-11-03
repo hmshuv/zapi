@@ -118,21 +118,12 @@ class ZAPI:
         
         return session
 
-    def upload_har(
-        self, 
-        har_file: str,
-        org_id: str,
-        api_type: str = "REST",
-        trigger_apispecgen_workflow: bool = True
-    ):
+    def upload_har(self, har_file: str):
         """
         Upload a HAR file to the ZAPI API.
         
         Args:
             har_file: Path to the HAR file to upload
-            org_id: Organization ID
-            api_type: API type (default: "REST")
-            trigger_apispecgen_workflow: Whether to trigger API spec generation workflow (default: True)
         
         Returns:
             Response JSON from the API
@@ -140,18 +131,10 @@ class ZAPI:
         Raises:
             requests.exceptions.RequestException: If the upload fails
         """
-        url = "https://adopt-wf-prod-long-running-adopt-prod-ws-8000.adopt.ai/api/v1/api-specs/har-upload"
+        url = "https://api.adopt.ai/v1/manual-api-file/upload"
         
         headers = {
-            "accept": "application/json"
-            # Note: Don't set Content-Type header - requests will set it automatically for multipart/form-data
-        }
-        
-        # Prepare form data
-        data = {
-            "org_id": org_id,
-            "api_type": api_type,
-            "trigger_apispecgen_workflow": str(trigger_apispecgen_workflow).lower()
+            "Authorization": f"Bearer {self.auth_token}"
         }
         
         # Prepare file for upload
@@ -159,8 +142,9 @@ class ZAPI:
             files = {
                 'file': (har_file, f, 'application/json')
             }
-            response = requests.post(url, headers=headers, data=data, files=files)
+            response = requests.post(url, headers=headers, files=files)
         
+        print("file uploaded successfully")
         response.raise_for_status()
         return response.json()
 
