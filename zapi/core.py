@@ -131,7 +131,7 @@ class ZAPI:
         Raises:
             requests.exceptions.RequestException: If the upload fails
         """
-        url = "https://api.adopt.ai/v1/manual-api-file/upload"
+        url = "https://api.adopt.ai/v1/api-discovery/upload-file"
         
         headers = {
             "Authorization": f"Bearer {self.auth_token}"
