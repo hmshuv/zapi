@@ -49,6 +49,9 @@ htmlcov/
 # HAR files
 *.har
 
+# Poetry lock file
+poetry.lock
+
 # Playwright
 playwright-report/
 test-results/
