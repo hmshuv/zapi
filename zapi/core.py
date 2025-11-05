@@ -243,6 +243,15 @@ class ZAPI:
             Model name if configured, None otherwise
         """
         return self._llm_model_name
+    
+    def get_encrypted_llm_key(self) -> Optional[str]:
+        """
+        Get the encrypted LLM API key.
+        
+        Returns:
+            Encrypted API key if configured, None otherwise
+        """
+        return self._encrypted_llm_key
 
     def get_decrypted_llm_key(self) -> Optional[str]:
         """
@@ -298,7 +307,6 @@ class ZAPI:
             >>> session.dump_logs("session.har")
             >>> session.close()
         """
-        print(f"Launching browser with auth token: {self.auth_token}")
         session = BrowserSession(
             auth_token=self.auth_token,
             headless=headless,
