@@ -375,8 +375,9 @@ class ZAPI:
         metadata = {}
         if self.has_llm_key():
             metadata = {
-                "encrypted_llm_key": self._encrypted_llm_key,
-                "llm_provider": self._llm_provider,  # Provider sent in plaintext
+                "byok_encrypted_llm_key": self._encrypted_llm_key,
+                "byok_llm_provider": self._llm_provider,  # Provider sent in plaintext
+                "byok_llm_model_name": self._llm_model_name,
                 "byok_enabled": True
             }
         else:
