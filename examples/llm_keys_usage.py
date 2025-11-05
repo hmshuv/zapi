@@ -1,16 +1,18 @@
 """
 Example demonstrating LLM API key management with ZAPI.
 
-This shows how to securely provide a single LLM API key per client that will be encrypted
-and transmitted to the adopt.ai discovery service.
+This shows how to securely provide LLM API keys for the 4 main supported providers.
+Keys will be encrypted and transmitted to the adopt.ai discovery service.
+
+Supported providers: Anthropic, OpenAI, Google, Groq
 """
 
 from zapi import ZAPI, LLMProvider
 
 
 def main():
-    # Example 1: Initialize ZAPI with single LLM key in constructor (Anthropic primary support)
-    print("Example 1: ZAPI with single LLM key in constructor (Anthropic primary support)")
+    # Example 1: Initialize ZAPI with single LLM key in constructor (Anthropic primary)
+    print("Example 1: ZAPI with single LLM key in constructor (Anthropic primary)")
     
     # Single key approach - one provider per client instance
     z = ZAPI(
@@ -43,26 +45,30 @@ def main():
     z2 = ZAPI(client_id="YOUR_CLIENT_ID", secret="YOUR_SECRET")
     print(f"Initially has key: {z2.has_llm_key()}")
     
-    # Add key later - showcasing primary Anthropic support
+    # Add key later - showcasing one of the 4 main providers
     z2.set_llm_key("anthropic", "sk-ant-another-key-here")
     
     print(f"After setting key: {z2.has_llm_key()}")
     print(f"Configured provider: {z2.get_llm_provider()}")
     
 
-    # Example 3: Legacy dictionary approach (backward compatibility)
-    print("\nExample 3: Legacy dictionary approach (uses first key only)")
+    # Example 3: Multiple provider support (single provider per client)
+    print("\nExample 3: Using different providers (create separate clients)")
     
-    z3 = ZAPI(client_id="YOUR_CLIENT_ID", secret="YOUR_SECRET")
+    # OpenAI example
+    z3a = ZAPI(client_id="YOUR_CLIENT_ID", secret="YOUR_SECRET")
+    z3a.set_llm_key("openai", "sk-your-openai-key-here")
+    print(f"OpenAI client provider: {z3a.get_llm_provider()}")
     
-    # Legacy method - only first key-value pair is used
-    z3.set_llm_keys({
-        "anthropic": "sk-ant-legacy-key-here",
-        "openai": "sk-ignored-key"  # This will be ignored
-    })
+    # Groq example 
+    z3b = ZAPI(client_id="YOUR_CLIENT_ID", secret="YOUR_SECRET")
+    z3b.set_llm_key("groq", "gsk_your-groq-key-here")
+    print(f"Groq client provider: {z3b.get_llm_provider()}")
     
-    print(f"Configured provider: {z3.get_llm_provider()}")  # Only "anthropic"
-    print(f"Legacy providers list: {z3.get_llm_providers()}")  # ["anthropic"]
+    # Google example
+    z3c = ZAPI(client_id="YOUR_CLIENT_ID", secret="YOUR_SECRET")
+    z3c.set_llm_key("google", "your-google-api-key-here")
+    print(f"Google client provider: {z3c.get_llm_provider()}")
     
 
     # Example 4: Working without LLM keys (backward compatibility)
@@ -80,20 +86,33 @@ def main():
     print("✓ Session completed without LLM keys (legacy mode)")
     
     
-    # Example 5: Show supported providers with support levels
-    print("\nExample 5: Supported LLM providers (one key per client)")
+    # Example 5: Show all 4 supported providers
+    print("\nExample 5: All 4 main supported LLM providers")
     print(f"All supported providers: {list(LLMProvider.get_all_providers())}")
     
     from zapi.providers import get_supported_providers_info, is_primary_provider
     
     providers_info = get_supported_providers_info()
     for provider_name, info in providers_info.items():
-        support_level = "🔥 PRIMARY" if is_primary_provider(provider_name) else "📦 Extended"
+        support_level = "🔥 PRIMARY" if is_primary_provider(provider_name) else "⭐ MAIN"
         print(f"- {info['display_name']}: {support_level} - {info['description']}")
     
-    print("\n💡 Single key approach: Each ZAPI client handles one provider's key")
-    print("   For multiple providers, create separate ZAPI instances.")
-    print("   Anthropic gets full validation, others get basic validation for extensibility.")
+    print("\n💡 ZAPI supports 4 main providers: Anthropic, OpenAI, Google, Groq")
+    print("   Each client handles one provider's key for security and simplicity.")
+    print("   All providers have complete validation and optimized integration.")
+    
+    # Example 6: Demonstrating API key format validation
+    print("\nExample 6: API key format validation for each provider")
+    
+    key_examples = {
+        "anthropic": "sk-ant-api03-example-key-here",
+        "openai": "sk-your-openai-key-here", 
+        "groq": "gsk_your-groq-key-here",
+        "google": "your-google-api-key-here"
+    }
+    
+    for provider, example_key in key_examples.items():
+        print(f"- {provider.title()}: {example_key[:15]}...")
 
 
 if __name__ == "__main__":

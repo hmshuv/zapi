@@ -4,10 +4,30 @@ import asyncio
 import json
 import requests
 import httpx
-from typing import Optional, Dict
+from typing import Optional
 from .session import BrowserSession
 from .providers import validate_llm_keys
 from .encryption import LLMKeyEncryption
+
+
+class ZAPIError(Exception):
+    """Base exception class for ZAPI errors."""
+    pass
+
+
+class ZAPIAuthenticationError(ZAPIError):
+    """Authentication-related errors."""
+    pass
+
+
+class ZAPIValidationError(ZAPIError):
+    """Input validation errors."""
+    pass
+
+
+class ZAPINetworkError(ZAPIError):
+    """Network-related errors."""
+    pass
 
 
 class ZAPI:
@@ -22,8 +42,9 @@ class ZAPI:
         self, 
         client_id: str,
         secret: str,
-        llm_provider: Optional[str] = None,
-        llm_api_key: Optional[str] = None
+        llm_provider: str,
+        llm_model_name: str,
+        llm_api_key: str
     ):
         """
         Initialize ZAPI instance.
@@ -33,15 +54,16 @@ class ZAPI:
             secret: Secret key for authentication
             llm_provider: Optional LLM provider name (e.g., "anthropic")
             llm_api_key: Optional LLM API key for the specified provider
+            llm_model_name: Optional LLM model name (e.g., "claude-3-5-sonnet-20241022")
             
         Raises:
             ValueError: If client_id or secret is empty, or LLM key format is invalid
             RuntimeError: If token fetch fails
         """
         if not client_id or not client_id.strip():
-            raise ValueError("client_id cannot be empty")
+            raise ZAPIValidationError("client_id cannot be empty")
         if not secret or not secret.strip():
-            raise ValueError("secret cannot be empty")
+            raise ZAPIValidationError("secret cannot be empty")
         
         self.client_id = client_id
         self.secret = secret
@@ -53,10 +75,10 @@ class ZAPI:
         self._key_encryptor = LLMKeyEncryption(self.org_id)
         
         # Validate and encrypt LLM key if provided
-        self._encrypted_llm_key: Optional[str] = None
-        self._llm_provider: Optional[str] = None
-        if llm_provider and llm_api_key:
-            self.set_llm_key(llm_provider, llm_api_key)
+        self._encrypted_llm_key: str = ""
+        self._llm_provider: str = llm_provider
+        self._llm_model_name: str = llm_model_name
+        self.set_llm_key(llm_provider, llm_api_key, llm_model_name)
     
     def _fetch_auth_token(self) -> tuple[str, str]:
         """
@@ -102,8 +124,19 @@ class ZAPI:
             
             return token, org_id
                 
+        except requests.exceptions.Timeout:
+            raise ZAPINetworkError("Authentication request timed out. Please check your internet connection.")
+        except requests.exceptions.ConnectionError:
+            raise ZAPINetworkError("Cannot connect to adopt.ai authentication service. Please check your internet connection.")
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                raise ZAPIAuthenticationError("Invalid client_id or secret. Please check your credentials.")
+            elif e.response.status_code == 403:
+                raise ZAPIAuthenticationError("Access forbidden. Please check your account permissions.")
+            else:
+                raise ZAPIAuthenticationError(f"Authentication failed: HTTP {e.response.status_code}")
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Failed to fetch authentication token: {e}")
+            raise ZAPINetworkError(f"Failed to fetch authentication token: {e}")
     
     async def _validate_token_and_extract_org_id(self, token: str) -> str:
         """
@@ -146,13 +179,20 @@ class ZAPI:
                 return org_id
                 
             except httpx.HTTPStatusError as e:
-                raise RuntimeError(f"Backend token validation failed: HTTP {e.response.status_code}")
+                if e.response.status_code == 401:
+                    raise ZAPIAuthenticationError("Token validation failed: Invalid or expired token")
+                elif e.response.status_code == 403:
+                    raise ZAPIAuthenticationError("Token validation failed: Access forbidden")
+                else:
+                    raise ZAPINetworkError(f"Backend token validation failed: HTTP {e.response.status_code}")
+            except httpx.ConnectTimeout:
+                raise ZAPINetworkError("Token validation timed out. Please check your internet connection.")
             except httpx.RequestError as e:
-                raise RuntimeError(f"Token validation request failed: {e}")
+                raise ZAPINetworkError(f"Token validation request failed: {e}")
             except Exception as e:
-                raise RuntimeError(f"Token validation error: {e}")
+                raise ZAPIError(f"Token validation error: {e}")
     
-    def set_llm_key(self, provider: str, api_key: str) -> None:
+    def set_llm_key(self, provider: str, api_key: str, model_name: str) -> None:
         """
         Set LLM API key for a specific provider.
         
@@ -167,19 +207,24 @@ class ZAPI:
         if not provider or not api_key:
             self._encrypted_llm_key = None
             self._llm_provider = None
+            self._llm_model_name = None
             return
         
         # Validate key format for the provider
-        validated_keys = validate_llm_keys({provider: api_key})
-        validated_provider = list(validated_keys.keys())[0]
-        validated_key = list(validated_keys.values())[0]
+        try:
+            validated_keys = validate_llm_keys({provider: api_key})
+            validated_provider = list(validated_keys.keys())[0]
+            validated_key = list(validated_keys.values())[0]
+        except ValueError as e:
+            raise ZAPIValidationError(f"LLM key validation failed: {e}")
         
         # Encrypt only the API key using org_id (provider stored separately)
         try:
             self._encrypted_llm_key = self._key_encryptor.encrypt_key(validated_key)
             self._llm_provider = validated_provider
+            self._llm_model_name = model_name
         except Exception as e:
-            raise RuntimeError(f"Failed to encrypt LLM key: {e}")
+            raise ZAPIError(f"Failed to encrypt LLM key: {e}")
     
     def get_llm_provider(self) -> Optional[str]:
         """
@@ -189,6 +234,15 @@ class ZAPI:
             Provider name if configured, None otherwise
         """
         return self._llm_provider
+
+    def get_llm_model_name(self) -> Optional[str]:
+        """
+        Get the configured LLM model name.
+        
+        Returns:
+            Model name if configured, None otherwise
+        """
+        return self._llm_model_name
 
     def get_decrypted_llm_key(self) -> Optional[str]:
         """
@@ -214,44 +268,6 @@ class ZAPI:
         """
         return self._encrypted_llm_key is not None
     
-    # Backward compatibility methods for examples/README
-    def set_llm_keys(self, llm_keys: Dict[str, str]) -> None:
-        """
-        Legacy method: Set LLM keys from dictionary (uses first key-value pair).
-        
-        Args:
-            llm_keys: Dictionary mapping provider names to API keys
-            
-        Note: This method is for backward compatibility. Only the first key-value pair is used.
-        """
-        if not llm_keys:
-            self.set_llm_key("", "")
-            return
-        
-        # Use the first key-value pair
-        provider = list(llm_keys.keys())[0]
-        api_key = list(llm_keys.values())[0]
-        self.set_llm_key(provider, api_key)
-    
-    def get_llm_providers(self) -> list[str]:
-        """
-        Legacy method: Get list of configured LLM providers.
-        
-        Returns:
-            List containing the single configured provider, or empty list
-        """
-        provider = self.get_llm_provider()
-        return [provider] if provider else []
-    
-    def has_llm_keys(self) -> bool:
-        """
-        Legacy method: Check if LLM keys are configured.
-        
-        Returns:
-            True if LLM key is set, False otherwise
-        """
-        return self.has_llm_key()
-    
     def launch_browser(
         self,
         url: str,
@@ -272,6 +288,10 @@ class ZAPI:
         Returns:
             BrowserSession instance ready for navigation and interaction
             
+        Raises:
+            ZAPIValidationError: If URL format is invalid
+            ZAPIError: If browser launch fails
+            
         Example:
             >>> z = ZAPI(client_id="YOUR_CLIENT_ID", secret="YOUR_SECRET")
             >>> session = z.launch_browser(url="https://app.example.com")
@@ -285,14 +305,48 @@ class ZAPI:
             **playwright_options
         )
         
-        # Initialize the session synchronously
+        # Initialize the session synchronously with enhanced error handling
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         
-        loop.run_until_complete(session._initialize(initial_url=url, wait_until=wait_until))
+        try:
+            loop.run_until_complete(session._initialize(initial_url=url, wait_until=wait_until))
+        except Exception as e:
+            # Close session if initialization failed
+            try:
+                session.close()
+            except Exception:
+                # Ignore cleanup errors, focus on the original error
+                pass
+            
+            error_message = str(e)
+            
+            # Provide specific error messages for common browser issues
+            if "Cannot navigate to invalid URL" in error_message:
+                raise ZAPIValidationError(
+                    f"Browser cannot navigate to URL: '{url}'. "
+                    "Please check the URL format and ensure it's accessible."
+                )
+            elif "net::ERR_NAME_NOT_RESOLVED" in error_message:
+                raise ZAPINetworkError(
+                    f"Domain name could not be resolved: '{url}'. "
+                    "Please check the URL spelling and your internet connection."
+                )
+            elif "net::ERR_CONNECTION_REFUSED" in error_message:
+                raise ZAPINetworkError(
+                    f"Connection refused to: '{url}'. "
+                    "The server may be down or the URL may be incorrect."
+                )
+            elif "Timeout" in error_message:
+                raise ZAPINetworkError(
+                    f"Timeout while loading: '{url}'. "
+                    "The website took too long to respond. Please try again or use a different URL."
+                )
+            else:
+                raise ZAPIError(f"Failed to launch browser session: {error_message}")
         
         return session
 
@@ -307,7 +361,9 @@ class ZAPI:
             Response JSON from the API
         
         Raises:
-            requests.exceptions.RequestException: If the upload fails
+            ZAPIValidationError: If file validation fails
+            ZAPINetworkError: If upload fails due to network issues
+            ZAPIAuthenticationError: If authentication fails
         """
         url = "https://api.adopt.ai/v1/api-discovery/upload-file"
         
@@ -328,25 +384,51 @@ class ZAPI:
                 "byok_enabled": False
             }
         
-        # Prepare multipart form data
-        with open(har_file, 'rb') as f:
-            files = {
-                'file': (har_file, f, 'application/json')
-            }
-            
-            # Add metadata as form data
-            data = {
-                'metadata': json.dumps(metadata)
-            }
-            
-            response = requests.post(url, headers=headers, files=files, data=data)
+        # Prepare multipart form data with enhanced error handling
+        try:
+            with open(har_file, 'rb') as f:
+                files = {
+                    'file': (har_file, f, 'application/json')
+                }
+                
+                # Add metadata as form data
+                data = {
+                    'metadata': json.dumps(metadata)
+                }
+                
+                response = requests.post(url, headers=headers, files=files, data=data, timeout=60)
         
-        print("file uploaded successfully")
-        if self.has_llm_key():
-            print(f"Included encrypted key for provider: {self.get_llm_provider()}")
+        except FileNotFoundError:
+            raise ZAPIValidationError(f"HAR file not found: '{har_file}'")
+        except PermissionError:
+            raise ZAPIValidationError(f"Permission denied reading HAR file: '{har_file}'")
+        except requests.exceptions.Timeout:
+            raise ZAPINetworkError("Upload request timed out. Please try again.")
+        except requests.exceptions.ConnectionError:
+            raise ZAPINetworkError("Cannot connect to ZAPI upload service. Please check your internet connection.")
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                raise ZAPIAuthenticationError("Upload failed: Invalid or expired authentication token")
+            elif e.response.status_code == 413:
+                raise ZAPIValidationError("HAR file is too large. Please try with a smaller session.")
+            elif e.response.status_code == 400:
+                raise ZAPIValidationError("Invalid HAR file format. Please ensure the file was generated correctly.")
+            else:
+                raise ZAPINetworkError(f"Upload failed: HTTP {e.response.status_code}")
+        except requests.exceptions.RequestException as e:
+            raise ZAPINetworkError(f"Upload request failed: {e}")
         
-        response.raise_for_status()
-        return response.json()
+        try:
+            response.raise_for_status()
+            print("file uploaded successfully")
+            if self.has_llm_key():
+                print(f"Included encrypted key for provider: {self.get_llm_provider()}")
+            return response.json()
+        except requests.exceptions.HTTPError:
+            # This should be caught above, but just in case
+            raise ZAPINetworkError(f"Upload failed with status code: {response.status_code}")
+        except json.JSONDecodeError:
+            raise ZAPIError("Invalid response format from upload service")
 
 
     def get_documented_apis(self, page: int = 1, page_size: int = 10):

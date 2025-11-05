@@ -1,12 +1,11 @@
 """LLM Provider enums and validation utilities.
 
 ZAPI supports a generic key-value approach for LLM API keys, allowing developers
-to bring their own keys for any provider. We explicitly support Anthropic with 
-full validation, and provide extensible support for additional providers.
+to bring their own keys for any provider. We support 4 main providers with 
+full validation and optimized integration.
 
 Currently supported providers:
-- Anthropic (primary support with full validation)
-- OpenAI, Google, Cohere, HuggingFace (extensible support)
+- Anthropic, OpenAI, Google, Groq (main supported providers)
 """
 
 from enum import Enum
@@ -17,17 +16,14 @@ class LLMProvider(Enum):
     """
     Supported LLM providers for API key management.
     
-    Uses generic key-value pairs {"provider": "api_key"} pattern for future-proof
-    extensibility. Anthropic is explicitly supported as the primary provider.
+    ZAPI supports 4 main LLM providers with optimized integration and validation.
+    Each provider has specific API key format validation.
     """
-    # Primary supported provider
+    # Main supported providers
     ANTHROPIC = "anthropic"
-    
-    # Additional supported providers (extensible)
     OPENAI = "openai"
     GOOGLE = "google" 
-    COHERE = "cohere"
-    HUGGINGFACE = "huggingface"
+    GROQ = "groq"
     
     @classmethod
     def get_all_providers(cls) -> Set[str]:
@@ -42,14 +38,13 @@ class LLMProvider(Enum):
 
 def validate_llm_keys(llm_keys: Dict[str, str]) -> Dict[str, str]:
     """
-    Validate LLM keys dictionary using generic key-value approach.
+    Validate LLM keys dictionary for supported providers.
     
-    Supports generic {"provider": "api_key"} pattern for any LLM provider.
-    Anthropic keys receive full validation, other providers have basic validation.
+    Supports the 4 main LLM providers with specific validation for each.
     
     Args:
         llm_keys: Dictionary mapping provider names to API keys
-                 Example: {"anthropic": "sk-ant-...", "openai": "sk-..."}
+                 Example: {"anthropic": "sk-ant-...", "openai": "sk-...", "groq": "gsk_..."}
         
     Returns:
         Validated and normalized keys dictionary
@@ -91,8 +86,7 @@ def _validate_key_format(provider: str, api_key: str) -> None:
     """
     Validate API key format for specific providers.
     
-    Anthropic receives full validation as the primary supported provider.
-    Other providers have basic validation for extensibility.
+    All 4 main providers receive specific validation tailored to their API key formats.
     
     Args:
         provider: Provider name (normalized to lowercase)
@@ -101,31 +95,29 @@ def _validate_key_format(provider: str, api_key: str) -> None:
     Raises:
         ValueError: If key format is invalid for the provider
     """
-    # Primary supported provider - full validation
+    # Main supported providers - specific validation for each
     if provider == LLMProvider.ANTHROPIC.value:
         if not api_key.startswith("sk-ant-"):
             raise ValueError("Anthropic API keys must start with 'sk-ant-'")
         if len(api_key) < 20:
             raise ValueError("Anthropic API keys must be at least 20 characters long")
     
-    # Additional providers - basic validation for extensibility
     elif provider == LLMProvider.OPENAI.value:
         if not api_key.startswith("sk-"):
             raise ValueError("OpenAI API keys must start with 'sk-'")
+        if len(api_key) < 20:
+            raise ValueError("OpenAI API keys must be at least 20 characters long")
     
     elif provider == LLMProvider.GOOGLE.value:
         # Google API keys are typically 39 characters and alphanumeric + hyphens
         if len(api_key) < 20:
             raise ValueError("Google API keys must be at least 20 characters long")
     
-    elif provider == LLMProvider.COHERE.value:
-        # Cohere API keys are typically long alphanumeric strings
+    elif provider == LLMProvider.GROQ.value:
+        if not api_key.startswith("gsk_"):
+            raise ValueError("Groq API keys must start with 'gsk_'")
         if len(api_key) < 20:
-            raise ValueError("Cohere API keys must be at least 20 characters long")
-    
-    elif provider == LLMProvider.HUGGINGFACE.value:
-        if not api_key.startswith("hf_"):
-            raise ValueError("HuggingFace API keys must start with 'hf_'")
+            raise ValueError("Groq API keys must be at least 20 characters long")
     
     # Generic validation for all providers
     if len(api_key) < 10:
@@ -140,8 +132,7 @@ def get_provider_display_name(provider: str) -> str:
     """
     Get human-readable display name for provider.
     
-    Supports generic key-value approach - any provider name can be used,
-    with known providers getting proper display names.
+    Returns display names for the 4 main supported providers.
     
     Args:
         provider: Provider name (normalized)
@@ -150,21 +141,18 @@ def get_provider_display_name(provider: str) -> str:
         Display name for the provider
     """
     display_names = {
-        # Primary supported provider
-        LLMProvider.ANTHROPIC.value: "Anthropic (Fully Supported)",
-        
-        # Additional supported providers
+        # Main supported providers
+        LLMProvider.ANTHROPIC.value: "Anthropic",
         LLMProvider.OPENAI.value: "OpenAI",
         LLMProvider.GOOGLE.value: "Google",
-        LLMProvider.COHERE.value: "Cohere", 
-        LLMProvider.HUGGINGFACE.value: "HuggingFace",
+        LLMProvider.GROQ.value: "Groq",
     }
     return display_names.get(provider, provider.title())
 
 
 def is_primary_provider(provider: str) -> bool:
     """
-    Check if provider is a primary supported provider with full validation.
+    Check if provider is the primary supported provider.
     
     Args:
         provider: Provider name (normalized)
@@ -177,7 +165,7 @@ def is_primary_provider(provider: str) -> bool:
 
 def get_supported_providers_info() -> Dict[str, Dict[str, str]]:
     """
-    Get information about supported providers.
+    Get information about the 4 main supported providers.
     
     Returns:
         Dictionary with provider info including support level
@@ -186,26 +174,21 @@ def get_supported_providers_info() -> Dict[str, Dict[str, str]]:
         "anthropic": {
             "display_name": "Anthropic",
             "support_level": "primary",
-            "description": "Fully supported with complete validation"
+            "description": "Primary supported provider with complete validation"
         },
         "openai": {
             "display_name": "OpenAI", 
-            "support_level": "extended",
-            "description": "Basic validation, extensible support"
+            "support_level": "main",
+            "description": "Fully supported with complete validation"
         },
         "google": {
             "display_name": "Google",
-            "support_level": "extended", 
-            "description": "Basic validation, extensible support"
+            "support_level": "main", 
+            "description": "Fully supported with complete validation"
         },
-        "cohere": {
-            "display_name": "Cohere",
-            "support_level": "extended",
-            "description": "Basic validation, extensible support"  
-        },
-        "huggingface": {
-            "display_name": "HuggingFace",
-            "support_level": "extended",
-            "description": "Basic validation, extensible support"
+        "groq": {
+            "display_name": "Groq",
+            "support_level": "main",
+            "description": "Fully supported with complete validation"
         }
     }

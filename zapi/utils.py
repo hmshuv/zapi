@@ -12,7 +12,7 @@ except ImportError:
     SecretStr = str  # Fallback to regular string if pydantic not available
 
 
-def load_llm_credentials() -> Tuple[Optional[str], Optional[str]]:
+def load_llm_credentials() -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Load LLM credentials from .env file or fallback to code defaults.
     
@@ -31,13 +31,14 @@ def load_llm_credentials() -> Tuple[Optional[str], Optional[str]]:
     load_dotenv()
     
     # Check environment variables first
-    env_provider = os.getenv("LLM_PROVIDER")
-    env_api_key = os.getenv("LLM_API_KEY")
+    env_llm_provider = os.getenv("LLM_PROVIDER")
+    env_llm_api_key = os.getenv("LLM_API_KEY")
+    env_llm_model_name = os.getenv("LLM_MODEL_NAME")
     
-    if env_provider and env_api_key:
-        print(f"✓ Loaded LLM credentials from .env file (provider: {env_provider})")
+    if env_llm_provider and env_llm_api_key and env_llm_model_name:
+        print(f"✓ Loaded LLM credentials from .env file (provider: {env_llm_provider})")
         # Return string directly - SecretStr handling is done in demo.py
-        return env_provider, env_api_key
+        return env_llm_provider, env_llm_api_key, env_llm_model_name
     
     print("ℹ️  No LLM credentials found in .env file")
-    return None, None
+    return None, None, None
