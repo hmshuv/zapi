@@ -39,6 +39,9 @@ ZAPI uses OAuth authentication with the adopt.ai platform and supports LLM integ
 - An LLM `api_key` for your chosen provider
 - An LLM `model_name` (e.g., "claude-3-5-sonnet-20241022")
 
+**Getting your client_id and secret:**
+Sign up at [app.adopt.ai](https://app.adopt.ai) to get your OAuth credentials.
+
 Add these to your environment or use them directly in your code.
 
 ### 2. Your First API Capture

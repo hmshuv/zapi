@@ -31,6 +31,9 @@ playwright install
 
 ## Quick Start
 
+**Get Your Credentials:**
+Sign up at [app.adopt.ai](https://app.adopt.ai) to get your `client_id` and `secret` for OAuth authentication.
+
 ```python
 from zapi import ZAPI, load_llm_credentials
 
