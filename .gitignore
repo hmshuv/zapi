@@ -34,6 +34,9 @@ venv.bak/
 # Environment variables
 .env
 
+# API credentials
+api-headers.json
+
 # IDEs
 .vscode/
 .idea/

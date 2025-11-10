@@ -4,10 +4,11 @@ import asyncio
 import json
 import requests
 import httpx
-from typing import Optional
+from typing import Optional, Dict, Any, List, Callable
 from .session import BrowserSession
 from .providers import validate_llm_keys
 from .encryption import LLMKeyEncryption
+from .utils import load_zapi_credentials
 
 
 class ZAPIError(Exception):
@@ -40,26 +41,37 @@ class ZAPI:
     
     def __init__(
         self, 
-        client_id: str,
-        secret: str,
-        llm_provider: str,
-        llm_model_name: str,
-        llm_api_key: str
+        client_id: Optional[str] = None,
+        secret: Optional[str] = None,
+        llm_provider: Optional[str] = None,
+        llm_model_name: Optional[str] = None,
+        llm_api_key: Optional[str] = None
     ):
         """
         Initialize ZAPI instance.
         
         Args:
-            client_id: Client ID for authentication
-            secret: Secret key for authentication
-            llm_provider: Optional LLM provider name (e.g., "anthropic")
-            llm_api_key: Optional LLM API key for the specified provider
-            llm_model_name: Optional LLM model name (e.g., "claude-3-5-sonnet-20241022")
+            client_id: Client ID for authentication. If None, loads from ADOPT_CLIENT_ID env var.
+            secret: Secret key for authentication. If None, loads from ADOPT_SECRET_KEY env var.
+            llm_provider: LLM provider name (e.g., "anthropic"). If None, loads from LLM_PROVIDER env var.
+            llm_model_name: LLM model name (e.g., "claude-3-5-sonnet-20241022"). If None, loads from LLM_MODEL_NAME env var.
+            llm_api_key: LLM API key for the specified provider. If None, loads from LLM_API_KEY env var.
             
         Raises:
             ValueError: If client_id or secret is empty, or LLM key format is invalid
             RuntimeError: If token fetch fails
         """
+        # Auto-load credentials from environment if not provided
+        if client_id is None or secret is None or llm_provider is None or llm_model_name is None or llm_api_key is None:
+            env_client_id, env_secret, env_llm_provider, env_llm_model_name, env_llm_api_key = load_zapi_credentials()
+            
+            # Use provided values or fallback to environment values
+            client_id = client_id or env_client_id
+            secret = secret or env_secret
+            llm_provider = llm_provider or env_llm_provider
+            llm_model_name = llm_model_name or env_llm_model_name
+            llm_api_key = llm_api_key or env_llm_api_key
+        
         if not client_id or not client_id.strip():
             raise ZAPIValidationError("client_id cannot be empty")
         if not secret or not secret.strip():
@@ -79,7 +91,16 @@ class ZAPI:
         self._llm_provider: str = llm_provider
         self._llm_model_name: str = llm_model_name
         self.set_llm_key(llm_provider, llm_api_key, llm_model_name)
-    
+        
+        # Automatically set LLM API key in environment for LangChain compatibility
+        if self._llm_provider and self._encrypted_llm_key:
+            from .utils import set_llm_api_key_env
+            try:
+                set_llm_api_key_env(self._llm_provider, self.get_decrypted_llm_key())
+            except Exception:
+                # Silently fail if LangChain integration is not available
+                pass
+            
     def _fetch_auth_token(self) -> tuple[str, str]:
         """
         Fetch authentication token from adopt.ai API and extract org_id.
@@ -278,6 +299,21 @@ class ZAPI:
             True if LLM key is set, False otherwise
         """
         return self._encrypted_llm_key is not None
+    
+    
+    def get_zapi_tools(self) -> List[Callable]:
+        """
+        Get LangChain tools from ZAPI (created on-demand).
+        
+        Returns:
+            List of LangChain tool functions
+        """
+        try:
+            from .integrations.langchain.tool import ZAPILangchainTool
+            tool_creator = ZAPILangchainTool(self)
+            return tool_creator.create_tools()
+        except ImportError:
+            raise ImportError("LangChain integration not available. Install langchain to use this feature.")
     
     def launch_browser(
         self,

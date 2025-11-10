@@ -21,12 +21,15 @@ from .session import (
 from .auth import AuthMode
 from .providers import LLMProvider
 from .encryption import LLMKeyEncryption
-from .utils import load_llm_credentials
 from .har_processing import (
     HarProcessor,
     HarStats,
     HarProcessingError,
     analyze_har_file,
+)
+from .utils import (
+    load_llm_credentials, 
+    interactive_chat,
 )
 
 __version__ = "0.1.0"
@@ -41,6 +44,7 @@ __all__ = [
     "HarProcessor",
     "HarStats", 
     "analyze_har_file",
+    "interactive_chat",
     # Exception classes
     "ZAPIError",
     "ZAPIAuthenticationError", 

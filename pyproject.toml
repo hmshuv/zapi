@@ -29,6 +29,9 @@ dependencies = [
     "httpx>=0.25.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    "langchain>=1.0.0",
+    "langchain-anthropic>=1.0.0",
+    "langchain-openai>=1.0.0",
 ]
 
 [project.urls]
