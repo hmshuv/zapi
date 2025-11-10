@@ -125,52 +125,6 @@ if z.has_llm_key():
 
 ## Core Features & Examples
 
-### Basic Navigation & Interaction
-
-ZAPI provides simple methods for interacting with web applications:
-
-```python
-from zapi import ZAPI
-
-z = ZAPI(
-    client_id="YOUR_CLIENT_ID", 
-    secret="YOUR_SECRET",
-    llm_provider="anthropic",
-    llm_api_key="sk-ant-YOUR_API_KEY",
-    llm_model_name="claude-3-5-sonnet-20241022"
-)
-session = z.launch_browser(url="https://app.example.com")
-
-# Navigate and interact
-session.navigate("/dashboard")
-session.click("#settings-button")
-session.fill("#search-input", "query")
-session.wait_for("#results")
-
-session.dump_logs("session.har")
-session.close()
-```
-
-### Using Context Managers
-
-For automatic cleanup, use ZAPI sessions as context managers:
-
-```python
-z = ZAPI(
-    client_id="YOUR_CLIENT_ID", 
-    secret="YOUR_SECRET",
-    llm_provider="openai",
-    llm_api_key="sk-YOUR_OPENAI_KEY",
-    llm_model_name="gpt-4"
-)
-
-with z.launch_browser(url="https://app.example.com") as session:
-    session.navigate("/api-endpoint")
-    session.wait_for(timeout=2000)
-    session.dump_logs("session.har")
-# Browser automatically closed
-```
-
 ### Uploading to adopt.ai
 
 Once you've captured traffic, upload it to the adopt.ai platform for automatic API documentation:
@@ -284,29 +238,6 @@ session.close()
 
 ## Advanced Usage
 
-### Concurrent Sessions with Async
-
-For advanced users, ZAPI supports async operations for concurrent browser sessions:
-
-```python
-import asyncio
-from zapi.session import BrowserSession
-
-async def capture_session(url, output_file, token):
-    session = BrowserSession(auth_token=token, headless=True)
-    await session._initialize(initial_url=url)
-    await session._wait_for_async(timeout=1000)
-    await session._dump_logs_async(output_file)
-    await session._close_async()
-
-# Run multiple sessions concurrently
-await asyncio.gather(
-    capture_session("https://api.example.com/v1/users", "users.har", token),
-    capture_session("https://api.example.com/v1/products", "products.har", token),
-    capture_session("https://api.example.com/v1/orders", "orders.har", token),
-)
-```
-
 ### Custom Playwright Options
 
 Pass any Playwright browser launch options:
@@ -368,32 +299,7 @@ finally:
     session.close()
 ```
 
-### 4. Handle Authentication States
-
-For applications requiring login, navigate and authenticate before capturing API traffic:
-
-```python
-z = ZAPI(
-    client_id="YOUR_CLIENT_ID",
-    secret="YOUR_SECRET", 
-    llm_provider="google",
-    llm_api_key="YOUR_GOOGLE_API_KEY",
-    llm_model_name="gemini-pro"
-)
-
-session = z.launch_browser(url="https://app.example.com/login", headless=False)
-
-# Manually log in when browser opens
-input("Log in, then press ENTER to continue...")
-
-# Now capture authenticated API calls
-session.navigate("/dashboard")
-session.navigate("/api/data")
-session.dump_logs("authenticated-session.har")
-session.close()
-```
-
-### 5. Complete Workflow with Analysis
+### 4. Complete Workflow with Analysis
 
 Here's a complete workflow that includes HAR analysis and cost estimation:
 

@@ -114,51 +114,6 @@ except HarProcessingError as e:
 ```
 ## Usage Examples
 
-### Navigation & Interaction
-
-```python
-from zapi import ZAPI, load_llm_credentials
-
-# Load credentials and initialize
-llm_provider, llm_api_key, llm_model_name = load_llm_credentials()
-z = ZAPI(
-    client_id="YOUR_CLIENT_ID", 
-    secret="YOUR_SECRET",
-    llm_provider=llm_provider,
-    llm_model_name=llm_model_name,
-    llm_api_key=llm_api_key
-)
-
-session = z.launch_browser(url="https://app.example.com")
-
-# Navigate and interact
-session.navigate("/dashboard")
-session.click("#settings-button")
-session.fill("#search-input", "query")
-session.wait_for("#results")
-
-session.dump_logs("session.har")
-session.close()
-```
-
-### Context Manager
-
-```python
-z = ZAPI(
-    client_id="YOUR_CLIENT_ID", 
-    secret="YOUR_SECRET",
-    llm_provider="anthropic",
-    llm_model_name="claude-3-5-sonnet-20241022",
-    llm_api_key="sk-ant-your-key"
-)
-
-with z.launch_browser(url="https://app.example.com") as session:
-    session.navigate("/api-endpoint")
-    session.wait_for(timeout=2000)
-    session.dump_logs("session.har")
-# Auto cleanup
-```
-
 ### Visible Browser Mode
 
 ```python
