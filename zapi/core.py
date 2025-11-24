@@ -327,7 +327,9 @@ class ZAPI:
             headless: Whether to run browser in headless mode (default: True)
             wait_until: When to consider navigation complete (default: "load")
                        Options: "load", "domcontentloaded", "networkidle"
-            **playwright_options: Additional Playwright browser launch options
+            **playwright_options: Additional Playwright browser launch options.
+                                 Use `args=["--disable-web-security"]` to disable
+                                 web security (for testing only).
             
         Returns:
             BrowserSession instance ready for navigation and interaction
@@ -341,6 +343,12 @@ class ZAPI:
             >>> session = z.launch_browser(url="https://app.example.com")
             >>> session.dump_logs("session.har")
             >>> session.close()
+            
+            # Disable web security (for testing only):
+            >>> session = z.launch_browser(
+            ...     url="https://app.example.com",
+            ...     args=["--disable-web-security"]
+            ... )
         """
         session = BrowserSession(
             auth_token=self.auth_token,
