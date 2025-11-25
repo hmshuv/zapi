@@ -79,24 +79,25 @@ Use this as a map when extending ZAPI or debugging the flow.
 
 ## Environment Setup
 
-1. Sign up at [app.adopt.ai](https://app.adopt.ai) to obtain your `ADOPT_CLIENT_ID`, `ADOPT_SECRET_KEY`, and BYOK token credentials before running ZAPI.
-2. Copy the example environment file and add your secrets:
+1.  Sign up at [app.adopt.ai](https://app.adopt.ai) to obtain your `ADOPT_CLIENT_ID`, `ADOPT_SECRET_KEY`, and BYOK token credentials before running ZAPI.
+2.  Copy the example environment file and add your secrets:
 
-```bash
-cp .env.example .env
-```
+    ```bash
+    cp .env.example .env
+    ```
 
-3. Populate `.env` with the required variables:
-
-```bash
-# Required environment variables
-LLM_PROVIDER_API_KEY=your_llm_api_key_here
-LLM_PROVIDER=anthropic                    # anthropic, openai, google, groq
-LLM_MODEL_NAME=claude-3-5-sonnet-20241022 # model name for your provider
-ADOPT_CLIENT_ID=your_client_id_here       # Get from app.adopt.ai
-ADOPT_SECRET_KEY=your_secret_key_here     # Get from app.adopt.ai
-YOUR_API_URL=your_api_url_here            # Custom API URL
-```
+3.  **Set up your environment:**
+    *   Create a `.env` file in the root of the project.
+    *   Populate it with the required variables:
+        ```env
+        # Required environment variables
+        LLM_API_KEY=your_llm_api_key_here
+        LLM_PROVIDER=anthropic                    # anthropic, openai, google, groq
+        LLM_MODEL_NAME=claude-3-5-sonnet-20241022 # model name for your provider
+        ADOPT_CLIENT_ID=your_client_id_here       # Get from app.adopt.ai
+        ADOPT_SECRET_KEY=your_secret_key_here     # Get from app.adopt.ai
+        YOUR_API_URL=your_api_url_here            # Custom API URL
+        ```
 
 Use `load_llm_credentials()` (provided in the library) to load secrets safely when building custom tooling.
 
