@@ -83,6 +83,8 @@ ignore = [
     "E501",  # Line too long (handled by formatter)
     "B008",  # Do not perform function calls in argument defaults
     "B905",  # zip() without an explicit strict= parameter
+    "B904",  # Within except clause, raise with from err - too strict for this codebase
+    "SIM105",  # Use contextlib.suppress() instead of try-except-pass - we prefer explicit try-except for clarity
 ]
 
 # Allow autofix for all enabled rules

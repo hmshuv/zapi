@@ -63,7 +63,16 @@ Thank you for your interest in contributing to ZAPI! This document provides guid
    pip install ruff
    ```
 
-7. Test the installation:
+7. Install pre-commit hooks (recommended):
+
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
+
+   This will automatically run Ruff checks before every commit.
+
+8. Test the installation:
 
    ```bash
    python demo.py
@@ -110,9 +119,15 @@ ruff format .
 **Before submitting a PR:**
 
 ```bash
-# Run both checks (same as CI)
+# Option 1: Run pre-commit hooks manually
+pre-commit run --all-files
+
+# Option 2: Run Ruff directly
 ruff check .
 ruff format --check .
+
+# Option 3: Use the pre-commit script
+./scripts/pre-commit.sh
 
 # Or fix everything automatically
 ruff check . --fix
@@ -125,6 +140,41 @@ Ruff settings are defined in `pyproject.toml`. Key settings:
 - Line length: 120 characters
 - Target: Python 3.9+
 - Enabled rules: pycodestyle, pyflakes, isort, pep8-naming, pyupgrade, flake8-bugbear, and more
+
+### Pre-commit Hooks
+
+ZAPI uses [pre-commit](https://pre-commit.com/) to automatically run checks before commits:
+
+**Setup (one-time):**
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+**What it does:**
+- ✅ Runs Ruff linter with auto-fix
+- ✅ Runs Ruff formatter
+- ✅ Checks for large files (>1MB)
+- ✅ Checks YAML, TOML, JSON syntax
+- ✅ Trims trailing whitespace
+- ✅ Prevents commits to main/master
+
+**Manual run:**
+```bash
+# Run on all files
+pre-commit run --all-files
+
+# Run on staged files only
+pre-commit run
+
+# Use the standalone script
+./scripts/pre-commit.sh
+```
+
+**Skip hooks (not recommended):**
+```bash
+git commit --no-verify
+```
 
 ## Project Structure
 
@@ -215,22 +265,22 @@ def analyze_har_file(
 ) -> Tuple[HarStats, str, Optional[str]]:
     """
     Analyze a HAR file and generate statistics.
-    
+
     This function loads a HAR file, filters out static assets,
     and provides cost/time estimates for API discovery processing.
-    
+
     Args:
         har_file_path: Path to the HAR file to analyze
         save_filtered: Whether to save filtered HAR with only API entries
         filtered_output_path: Custom path for filtered HAR (optional)
-    
+
     Returns:
         Tuple of (statistics, formatted_report, filtered_file_path)
-    
+
     Raises:
         HarProcessingError: If HAR file is invalid or cannot be processed
         FileNotFoundError: If HAR file does not exist
-    
+
     Example:
         >>> stats, report, filtered = analyze_har_file("session.har", save_filtered=True)
         >>> print(f"API entries: {stats.valid_entries}")
@@ -418,7 +468,7 @@ To add support for a new LLM provider:
    ```bash
    # Test HAR analysis
    python -c "from zapi import analyze_har_file; print(analyze_har_file('demo_session.har'))"
-   
+
    # Test LangChain integration
    python examples/langchain/demo.py
    ```
@@ -497,4 +547,3 @@ See [LICENSE](LICENSE) file for full license text.
 ---
 
 Thank you for contributing to ZAPI! Your contributions help make API discovery and LLM integration easier for everyone. 🚀
-
