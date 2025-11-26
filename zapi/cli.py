@@ -1,14 +1,19 @@
 """Command-line interface for ZAPI."""
 
-import click
 from pathlib import Path
+import time
+
+import click
+
 from .core import ZAPI
 from .har_processing import analyze_har_file
+
 
 @click.group()
 def cli():
     """ZAPI command-line tool."""
     pass
+
 
 @cli.command()
 @click.argument('url')
@@ -30,7 +35,6 @@ def capture(url, output, headless):
             click.echo("Running in headless mode. The script will automatically close the session.")
             # In a real-world headless scenario, you might add some automated actions here.
             # For now, we'll just wait for a moment.
-            import time
             time.sleep(10) # Wait 10 seconds
 
         click.echo("💾 Saving session logs...")
@@ -39,6 +43,7 @@ def capture(url, output, headless):
     finally:
         session.close()
         click.echo("🧹 Browser session closed.")
+
 
 @cli.command()
 @click.argument('har_file', type=click.Path(exists=True))
@@ -54,6 +59,7 @@ def analyze(har_file):
     if filtered_path:
         click.echo(f"   🧹 Filtered HAR saved to: {filtered_path}")
 
+
 @cli.command()
 @click.argument('har_file', type=click.Path(exists=True))
 def upload(har_file):
@@ -62,6 +68,7 @@ def upload(har_file):
     click.echo(f"☁️ Uploading HAR file: {har_file}")
     zapi_client.upload_har(har_file)
     click.echo("✅ HAR file uploaded successfully!")
+
 
 if __name__ == '__main__':
     cli()
