@@ -16,9 +16,9 @@ def cli():
 
 
 @cli.command()
-@click.argument('url')
-@click.option('--output', default='session.har', help='Output HAR file path.')
-@click.option('--headless/--no-headless', default=False, help='Run browser in headless mode.')
+@click.argument("url")
+@click.option("--output", default="session.har", help="Output HAR file path.")
+@click.option("--headless/--no-headless", default=False, help="Run browser in headless mode.")
 def capture(url, output, headless):
     """Capture a browser session to a HAR file."""
     zapi_client = ZAPI()
@@ -35,7 +35,7 @@ def capture(url, output, headless):
             click.echo("Running in headless mode. The script will automatically close the session.")
             # In a real-world headless scenario, you might add some automated actions here.
             # For now, we'll just wait for a moment.
-            time.sleep(10) # Wait 10 seconds
+            time.sleep(10)  # Wait 10 seconds
 
         click.echo("💾 Saving session logs...")
         session.dump_logs(str(output_path))
@@ -46,7 +46,7 @@ def capture(url, output, headless):
 
 
 @cli.command()
-@click.argument('har_file', type=click.Path(exists=True))
+@click.argument("har_file", type=click.Path(exists=True))
 def analyze(har_file):
     """Analyze a HAR file."""
     click.echo(f"🔍 Analyzing HAR file: {har_file}")
@@ -61,7 +61,7 @@ def analyze(har_file):
 
 
 @cli.command()
-@click.argument('har_file', type=click.Path(exists=True))
+@click.argument("har_file", type=click.Path(exists=True))
 def upload(har_file):
     """Upload a HAR file to ZAPI."""
     zapi_client = ZAPI()
@@ -70,5 +70,5 @@ def upload(har_file):
     click.echo("✅ HAR file uploaded successfully!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
