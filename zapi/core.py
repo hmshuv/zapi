@@ -418,7 +418,9 @@ class ZAPI:
         url = f"{BASE_URL}/v1/api-discovery/upload-file"
 
         if not self.auth_token:
-            raise AuthError("Authentication required for upload. Please check your credentials and internet connection.")
+            raise AuthError(
+                "Authentication required for upload. Please check your credentials and internet connection."
+            )
 
         headers = {"Authorization": f"Bearer {self.auth_token}"}
 

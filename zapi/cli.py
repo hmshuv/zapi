@@ -72,8 +72,8 @@ def upload(har_file):
 
 
 @cli.command()
-@click.argument('har_file', type=click.Path(exists=True))
-@click.option('--output', default='session_graph.html', help='Output HTML graph file path.')
+@click.argument("har_file", type=click.Path(exists=True))
+@click.option("--output", default="session_graph.html", help="Output HTML graph file path.")
 def graph(har_file, output):
     """Visualize a HAR session as an interactive graph."""
     click.echo(f"📊 Generating graph from: {har_file}")
@@ -82,7 +82,6 @@ def graph(har_file, output):
         click.echo(f"✅ Graph visualization saved to: {output_path}")
     except Exception as e:
         click.echo(f"❌ Failed to generate graph: {str(e)}")
-
 
 
 if __name__ == "__main__":
